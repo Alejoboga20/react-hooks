@@ -1,25 +1,57 @@
 // useEffect: persistent state
-// http://localhost:3000/isolated/exercise/02.js
+// 💯 flexible localStorage hook
+// http://localhost:3000/isolated/final/02.extra-4.js
 
 import * as React from 'react'
 
-const useLocalStorageState = (key, defaultValue = '') => {
-  const [state, setState] = React.useState(
-    () => window.localStorage.getItem(key) ?? defaultValue,
-  )
+function useLocalStorageState(
+  key,
+  defaultValue = '',
+  // the = {} fixes the error we would get from destructuring when no argument was passed
+  // Check https://jacobparis.com/blog/destructure-arguments for a detailed explanation
+  {serialize = JSON.stringify, deserialize = JSON.parse} = {},
+) {
+  const [state, setState] = React.useState(() => {
+    const valueInLocalStorage = window.localStorage.getItem(key)
+    if (valueInLocalStorage) {
+      // the try/catch is here in case the localStorage value was set before
+      // we had the serialization in place (like we do in previous extra credits)
+      try {
+        return deserialize(valueInLocalStorage)
+      } catch (error) {
+        window.localStorage.removeItem(key)
+      }
+    }
+    return typeof defaultValue === 'function' ? defaultValue() : defaultValue
+  })
 
+  const prevKeyRef = React.useRef(key)
+  //1 prevKeyRef.current: 'name', key: 'name'
+  //2 prevKeyRef.current: 'name', key: 'firstname'
+
+  // Check the example at src/examples/local-state-key-change.js to visualize a key change
   React.useEffect(() => {
-    window.localStorage.setItem(key, state)
-  }, [state, key])
+    const prevKey = prevKeyRef.current
+    //1 prevKey: 'name'
+    //2 prevKey: 'name'
+    if (prevKey !== key) {
+      //2 key: 'firstName' and delete key: 'name'
+      window.localStorage.removeItem(prevKey)
+    }
+    prevKeyRef.current = key
+    //1 prevKeyRef.current: 'name', key: 'name'
+    //1 prevKeyRef.current: 'firstName', key: 'firstName'
+    window.localStorage.setItem(key, serialize(state))
+  }, [key, state, serialize])
 
   return [state, setState]
 }
 
 function Greeting({initialName = ''}) {
-  const [name, setState] = useLocalStorageState('name', initialName)
+  const [name, setName] = useLocalStorageState('name', initialName)
 
   function handleChange(event) {
-    setState(event.target.value)
+    setName(event.target.value)
   }
 
   return (

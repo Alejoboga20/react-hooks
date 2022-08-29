@@ -15,23 +15,23 @@ import {
 
 function PokemonInfo({pokemonName}) {
   // 🐨 Have state for the pokemon (null)
-  const [pokemon, setPokemon] = React.useState(null)
-  const [error, setError] = React.useState(null)
-  const [status, setStatus] = React.useState('idle')
+  const [state, setState] = React.useState({
+    pokemon: null,
+    error: null,
+    status: 'idle',
+  })
 
+  const {status, pokemon, error} = state
   React.useEffect(() => {
     if (!pokemonName) return
 
-    setPokemon(null)
-    setStatus('pending')
+    setState({status: 'pending', pokemon: null})
     fetchPokemon(pokemonName)
       .then(pokemonData => {
-        setPokemon(pokemonData)
-        setStatus('resolved')
+        setState({status: 'resolved', pokemon: pokemonData})
       })
       .catch(fetchError => {
-        setError(fetchError)
-        setStatus('rejected')
+        setState({status: 'rejected', error: fetchError})
       })
   }, [pokemonName])
   // 🐨 use React.useEffect where the callback should be called whenever the
